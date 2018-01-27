@@ -28,6 +28,35 @@ const (
 	stateFinished       = 2
 )
 
+type stateHistory struct {
+	states []*gameState
+	sp     int
+}
+
+func (sh *stateHistory) Current() *gameState {
+	return sh.states[sh.sp]
+}
+
+func (sh *stateHistory) Back() {
+	if sh.sp > 0 {
+		sh.sp--
+	}
+}
+
+func (sh *stateHistory) Forward() {
+	if sh.sp < (len(sh.states) - 1) {
+		sh.sp++
+	}
+}
+
+func (sh *stateHistory) Add(g *gameState) {
+	if len(sh.states) > (sh.sp + 1) {
+		sh.states = sh.states[0 : sh.sp+1]
+	}
+	sh.states = append(sh.states, g)
+	sh.sp = len(sh.states) - 1
+}
+
 func main() {
 	pixelgl.Run(func() {
 		win, err := newConnect4Window(winWidth, winHeight)
@@ -35,41 +64,42 @@ func main() {
 			log.Fatal(err)
 		}
 
-		g := newGame()
+		states := &stateHistory{}
+		states.Add(newGame())
 		state := stateWaitingForTurn
 		var startTime time.Time
 		needsRender := true
 		for !win.Closed() {
 			if needsRender {
-				win.Render(g, state, startTime)
+				win.Render(states.Current(), state, startTime)
 			}
 			needsRender = true
 			switch state {
 			case stateWaitingForTurn:
-				if g.Turn == 0 {
+				if states.Current().Turn == 0 {
 					colClicked := win.JustClickedCol()
 					if colClicked == -1 {
 						needsRender = false
 					} else {
-						ns := g.MakeMove(colClicked)
+						ns := states.Current().MakeMove(colClicked)
 						if ns != nil {
-							g = ns
+							states.Add(ns)
 							state = stateFalling
 							startTime = time.Now()
 						}
 					}
 				} else {
-					ns := g.AutoChooseMove(4)
+					ns := states.Current().AutoChooseMove(4)
 					if ns == nil {
 						log.Fatal("computer can't find a move")
 					}
-					g = ns
+					states.Add(ns)
 					state = stateFalling
 					startTime = time.Now()
 				}
 			case stateFalling:
 				if time.Now().Sub(startTime).Seconds() >= timeToDrop {
-					if g.Finished {
+					if states.Current().Finished {
 						state = stateFinished
 						startTime = time.Now()
 					} else {
@@ -78,7 +108,8 @@ func main() {
 				}
 			case stateFinished:
 				if win.JustClickedCol() != -1 {
-					g = newGame()
+					states = &stateHistory{}
+					states.Add(newGame())
 					state = stateWaitingForTurn
 				}
 			}

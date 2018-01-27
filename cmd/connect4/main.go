@@ -37,16 +37,20 @@ func (sh *stateHistory) Current() *gameState {
 	return sh.states[sh.sp]
 }
 
-func (sh *stateHistory) Back() {
+func (sh *stateHistory) Back() bool {
 	if sh.sp > 0 {
 		sh.sp--
+		return true
 	}
+	return false
 }
 
-func (sh *stateHistory) Forward() {
+func (sh *stateHistory) Forward() bool {
 	if sh.sp < (len(sh.states) - 1) {
 		sh.sp++
+		return true
 	}
+	return false
 }
 
 func (sh *stateHistory) Add(g *gameState) {
@@ -70,6 +74,20 @@ func main() {
 		var startTime time.Time
 		needsRender := true
 		for !win.Closed() {
+			if win.JustClickedLeftArrow() {
+				if states.Back() {
+					states.Back() // go back again behind computer
+					state = stateWaitingForTurn
+					needsRender = true
+				}
+			} else if win.JustClickedRightArrow() {
+				if states.Forward() {
+					states.Forward()
+					state = stateWaitingForTurn
+					needsRender = true
+				}
+			}
+
 			if needsRender {
 				win.Render(states.Current(), state, startTime)
 			}

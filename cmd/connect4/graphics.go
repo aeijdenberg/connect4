@@ -72,6 +72,14 @@ func (w *connect4Window) Update() {
 	w.win.Update()
 }
 
+func (w *connect4Window) JustClickedLeftArrow() bool {
+	return w.win.JustPressed(pixelgl.KeyLeft)
+}
+
+func (w *connect4Window) JustClickedRightArrow() bool {
+	return w.win.JustPressed(pixelgl.KeyRight)
+}
+
 func (w *connect4Window) JustClickedCol() int {
 	if w.win.JustPressed(pixelgl.MouseButtonLeft) {
 		return int(w.win.MousePosition().X / w.cWidth)

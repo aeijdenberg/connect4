@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/faiface/pixel/pixelgl"
@@ -64,6 +65,7 @@ func (sh *stateHistory) Add(g *gameState) {
 
 func main() {
 	pixelgl.Run(func() {
+		rand.Seed(time.Now().UnixNano())
 		win, err := newConnect4Window(winWidth, winHeight)
 		if err != nil {
 			log.Fatal(err)

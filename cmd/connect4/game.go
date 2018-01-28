@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"math/rand"
 	"sync"
 )
 
@@ -109,7 +110,7 @@ func (s *gameState) StartAutoChooseMove(depth int) {
 	s.autoMoveWG.Add(1)
 	go func() {
 		defer s.autoMoveWG.Done()
-		_, s.autoMoveResult = s.minimax(depth, s.Turn)
+		_, s.autoMoveResult = s.minimax(depth, s.Turn, true)
 	}()
 }
 
@@ -119,7 +120,7 @@ func (s *gameState) WaitAutoChooseMove() *gameState {
 }
 
 // Returns score gamestate
-func (s *gameState) minimax(depth, origPlayer int) (int, *gameState) {
+func (s *gameState) minimax(depth, origPlayer int, wantState bool) (int, *gameState) {
 	if depth == 0 || s.Finished {
 		ss, _ := s.score(depth, origPlayer)
 		return ss, nil
@@ -131,18 +132,33 @@ func (s *gameState) minimax(depth, origPlayer int) (int, *gameState) {
 		bestValue = math.MaxInt64
 	}
 
-	var bs *gameState
+	var bs []*gameState
 	for c := 0; c < columns; c++ {
 		ns := s.MakeMove(c)
 		if ns != nil {
-			v, _ := ns.minimax(depth-1, origPlayer)
-			if (s.Turn == origPlayer && v > bestValue) || (s.Turn != origPlayer && v < bestValue) {
+			v, _ := ns.minimax(depth-1, origPlayer, false)
+			if (s.Turn == origPlayer && v >= bestValue) || (s.Turn != origPlayer && v <= bestValue) {
+				if wantState {
+					if bestValue == v {
+						bs = append(bs, ns)
+					} else {
+						bs = []*gameState{ns}
+					}
+				}
 				bestValue = v
-				bs = ns
 			}
 		}
 	}
-	return bestValue, bs
+	var bsRv *gameState
+	if wantState && len(bs) != 0 {
+		if len(bs) == 1 {
+			bsRv = bs[0]
+		} else {
+			// unusual, but when we get a tie-break, be arbitrary
+			bsRv = bs[rand.Intn(len(bs))]
+		}
+	}
+	return bestValue, bsRv
 }
 
 // Return score, and (if won) index of winning move in possibilities

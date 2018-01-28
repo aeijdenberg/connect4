@@ -72,6 +72,14 @@ func (w *connect4Window) Update() {
 	w.win.Update()
 }
 
+func (w *connect4Window) JustClickedAutopilot() bool {
+	return w.win.JustPressed(pixelgl.KeyA)
+}
+
+func (w *connect4Window) JustClickedFaster() bool {
+	return w.win.JustPressed(pixelgl.KeyF)
+}
+
 func (w *connect4Window) JustClickedLeftArrow() bool {
 	return w.win.JustPressed(pixelgl.KeyLeft)
 }
@@ -87,7 +95,7 @@ func (w *connect4Window) JustClickedCol() int {
 	return -1
 }
 
-func (w *connect4Window) Render(g *gameState, state int, startTime time.Time) {
+func (w *connect4Window) Render(g *gameState, state int, startTime time.Time, timeToDrop float64) {
 	w.win.Clear(colornames.Whitesmoke)
 
 	for r := 0; r < rows; r++ {

@@ -114,7 +114,10 @@ func (s *gameState) StartAutoChooseMove(depth int) {
 	}()
 }
 
-func (s *gameState) WaitAutoChooseMove() *gameState {
+func (s *gameState) WaitAutoChooseMove(depth int) *gameState {
+	if s.autoMoveWG == nil {
+		s.StartAutoChooseMove(depth)
+	}
 	s.autoMoveWG.Wait()
 	return s.autoMoveResult
 }
@@ -181,7 +184,7 @@ func (s *gameState) score(depth, ourPlayer int) (int, int) {
 				if pl == ourPlayer {
 					return won + depth, pi
 				}
-				return lost, -1
+				return lost + depth, -1
 			}
 			if pl == ourPlayer {
 				rv += (cnt * cnt)

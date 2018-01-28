@@ -12,8 +12,8 @@ const (
 	winWidth  = 1400
 	winHeight = 1200
 
-	timeToDrop  = 1.0
-	idleTimeout = 120.0
+	defaultTimeToDrop = 1.0
+	idleTimeout       = 120.0
 
 	columns = 7
 	rows    = 6
@@ -28,6 +28,8 @@ const (
 	stateWaitingForTurn = 0
 	stateFalling        = 1
 	stateFinished       = 2
+
+	depthToSearch = 4
 )
 
 type stateHistory struct {
@@ -77,6 +79,8 @@ func main() {
 		var startTime time.Time
 		idleTTL := time.Now().Add(idleTimeout * time.Second)
 		needsRender := true
+		inAutoPilot := false
+		timeToDrop := defaultTimeToDrop
 		for !win.Closed() {
 			if time.Now().After(idleTTL) {
 				log.Fatal("idle timeout, see ya later")
@@ -93,15 +97,23 @@ func main() {
 					state = stateWaitingForTurn
 					needsRender = true
 				}
+			} else if win.JustClickedAutopilot() {
+				inAutoPilot = !inAutoPilot
+			} else if win.JustClickedFaster() {
+				if timeToDrop < defaultTimeToDrop {
+					timeToDrop = defaultTimeToDrop
+				} else {
+					timeToDrop = defaultTimeToDrop / 10.0
+				}
 			}
 
 			if needsRender {
-				win.Render(states.Current(), state, startTime)
+				win.Render(states.Current(), state, startTime, timeToDrop)
 			}
 			needsRender = true
 			switch state {
 			case stateWaitingForTurn:
-				if states.Current().Turn == 0 {
+				if states.Current().Turn == 0 && !inAutoPilot {
 					colClicked := win.JustClickedCol()
 					if colClicked == -1 {
 						needsRender = false
@@ -109,7 +121,7 @@ func main() {
 						ns := states.Current().MakeMove(colClicked)
 						if ns != nil {
 							if !ns.Finished {
-								ns.StartAutoChooseMove(4)
+								ns.StartAutoChooseMove(depthToSearch)
 							}
 							states.Add(ns)
 							state = stateFalling
@@ -118,9 +130,12 @@ func main() {
 						}
 					}
 				} else {
-					ns := states.Current().WaitAutoChooseMove()
+					ns := states.Current().WaitAutoChooseMove(depthToSearch)
 					if ns == nil {
 						log.Fatal("computer can't find a move")
+					}
+					if !ns.Finished && inAutoPilot {
+						ns.StartAutoChooseMove(depthToSearch)
 					}
 					states.Add(ns)
 					state = stateFalling
@@ -130,6 +145,8 @@ func main() {
 				if time.Now().Sub(startTime).Seconds() >= timeToDrop {
 					if states.Current().Finished {
 						state = stateFinished
+						timeToDrop = defaultTimeToDrop
+						inAutoPilot = false
 						startTime = time.Now()
 					} else {
 						state = stateWaitingForTurn

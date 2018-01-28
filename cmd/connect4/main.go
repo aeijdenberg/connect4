@@ -11,7 +11,8 @@ const (
 	winWidth  = 1400
 	winHeight = 1200
 
-	timeToDrop = 1.0
+	timeToDrop  = 1.0
+	idleTimeout = 120.0
 
 	columns = 7
 	rows    = 6
@@ -72,8 +73,12 @@ func main() {
 		states.Add(newGame())
 		state := stateWaitingForTurn
 		var startTime time.Time
+		idleTTL := time.Now().Add(idleTimeout * time.Second)
 		needsRender := true
 		for !win.Closed() {
+			if time.Now().After(idleTTL) {
+				log.Fatal("idle timeout, see ya later")
+			}
 			if win.JustClickedLeftArrow() {
 				if states.Back() {
 					states.Back() // go back again behind computer
@@ -104,6 +109,7 @@ func main() {
 							states.Add(ns)
 							state = stateFalling
 							startTime = time.Now()
+							idleTTL = time.Now().Add(idleTimeout * time.Second)
 						}
 					}
 				} else {

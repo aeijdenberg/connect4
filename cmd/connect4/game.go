@@ -86,8 +86,8 @@ func (s *gameState) MakeMove(c int) *gameState {
 	}
 	rv.State[toStateIdx(c, s.Height[c])] = s.Turn
 	rv.Height[c] = s.Height[c] + 1
-	ss, wm := rv.score(s.Turn)
-	if ss == won {
+	ss, wm := rv.score(0, s.Turn)
+	if ss >= won {
 		rv.Finished = true
 		rv.WinningMove = wm
 	} else if rv.Height[c] == rows {
@@ -121,7 +121,7 @@ func (s *gameState) WaitAutoChooseMove() *gameState {
 // Returns score gamestate
 func (s *gameState) minimax(depth, origPlayer int) (int, *gameState) {
 	if depth == 0 || s.Finished {
-		ss, _ := s.score(origPlayer)
+		ss, _ := s.score(depth, origPlayer)
 		return ss, nil
 	}
 	var bestValue int
@@ -146,7 +146,8 @@ func (s *gameState) minimax(depth, origPlayer int) (int, *gameState) {
 }
 
 // Return score, and (if won) index of winning move in possibilities
-func (s *gameState) score(ourPlayer int) (int, int) {
+// depth is to tie-break wins
+func (s *gameState) score(depth, ourPlayer int) (int, int) {
 	rv := 0
 	for pi, p := range allPossibles {
 		for pl := 0; pl < players; pl++ {
@@ -162,7 +163,7 @@ func (s *gameState) score(ourPlayer int) (int, int) {
 			}
 			if cnt == target {
 				if pl == ourPlayer {
-					return won, pi
+					return won + depth, pi
 				}
 				return lost, -1
 			}

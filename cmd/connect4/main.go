@@ -106,6 +106,9 @@ func main() {
 					} else {
 						ns := states.Current().MakeMove(colClicked)
 						if ns != nil {
+							if !ns.Finished {
+								ns.StartAutoChooseMove(4)
+							}
 							states.Add(ns)
 							state = stateFalling
 							startTime = time.Now()
@@ -113,7 +116,7 @@ func main() {
 						}
 					}
 				} else {
-					ns := states.Current().AutoChooseMove(4)
+					ns := states.Current().WaitAutoChooseMove()
 					if ns == nil {
 						log.Fatal("computer can't find a move")
 					}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"sync"
 )
 
 var (
@@ -58,6 +59,9 @@ type gameState struct {
 	LastMoveCol  int
 	LastMoveRow  int
 	LastMoveTurn int
+
+	autoMoveWG     *sync.WaitGroup
+	autoMoveResult *gameState
 }
 
 func newGame() *gameState {
@@ -100,9 +104,18 @@ func (s *gameState) MakeMove(c int) *gameState {
 	return rv
 }
 
-func (s *gameState) AutoChooseMove(depth int) *gameState {
-	_, rv := s.minimax(depth, s.Turn)
-	return rv
+func (s *gameState) StartAutoChooseMove(depth int) {
+	s.autoMoveWG = &sync.WaitGroup{}
+	s.autoMoveWG.Add(1)
+	go func() {
+		defer s.autoMoveWG.Done()
+		_, s.autoMoveResult = s.minimax(depth, s.Turn)
+	}()
+}
+
+func (s *gameState) WaitAutoChooseMove() *gameState {
+	s.autoMoveWG.Wait()
+	return s.autoMoveResult
 }
 
 // Returns score gamestate
